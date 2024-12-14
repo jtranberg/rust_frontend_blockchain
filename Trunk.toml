@@ -1,0 +1,8 @@
+[build]
+target = "index.html"
+dist = "dist"
+assets = "static"
+
+[serve]
+port = 8080                      # The port for the development server
+
