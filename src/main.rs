@@ -1,24 +1,30 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-use yew::prelude::*;
-mod blockchain;
-use blockchain::Blockchain;
-use wasm_bindgen::JsCast;
+use std::rc::Rc; // Used for reference-counted shared ownership
+use std::cell::RefCell; // Enables mutable borrowing in an immutable Rc
+use yew::prelude::*; // Yew framework prelude for building web components
+mod blockchain; // Blockchain module containing logic and data structures
+use blockchain::Blockchain; // Importing the Blockchain struct
+use wasm_bindgen::JsCast; // For working with JavaScript DOM types
 
+/// Main application component
 #[function_component(App)]
 fn app() -> Html {
+    // State to hold the blockchain instance, wrapped in Rc<RefCell> for shared mutable access
     let blockchain = use_state(|| Rc::new(RefCell::new(Blockchain::new())));
+
+    // State to hold the result messages displayed to the user
     let result = use_state(|| String::from("Welcome to Blockchain B"));
 
+    // Callback for creating a new account
     let on_create_account = {
-        let blockchain = blockchain.clone();
+        let blockchain = blockchain.clone(); // Clone to move into the closure
         let result = result.clone();
         Callback::from(move |(id, balance): (String, i64)| {
-            let mut chain = blockchain.borrow_mut();
-            result.set(chain.create_account(id, balance));
+            let mut chain = blockchain.borrow_mut(); // Borrow mutably to update the blockchain
+            result.set(chain.create_account(id, balance)); // Update the result with the outcome
         })
     };
 
+    // Callback for transferring funds between accounts
     let on_transfer = {
         let blockchain = blockchain.clone();
         let result = result.clone();
@@ -28,17 +34,20 @@ fn app() -> Html {
         })
     };
 
+    // Callback for retrieving an account's balance
     let on_get_balance = {
         let blockchain = blockchain.clone();
         let result = result.clone();
         Callback::from(move |id: String| {
-            let chain = blockchain.borrow();
+            let chain = blockchain.borrow(); // Borrow immutably to fetch balance
             result.set(chain.get_balance(&id));
         })
     };
 
+    // HTML for the application
     html! {
         <>
+            // Main container styling and layout
             <div
                 style="
                     font-family: Arial, sans-serif; 
@@ -51,6 +60,7 @@ fn app() -> Html {
                     text-align: center;
                 "
             >
+                // Inner container with additional styling
                 <div
                     class="container"
                     style="
@@ -64,6 +74,8 @@ fn app() -> Html {
                     "
                 >
                     <h1 style="color: #4CAF50; font-size: 32px; margin-bottom: 20px;">{ "Blockchain B" }</h1>
+
+                    // Result display section
                     <div 
                         class="result"
                         style="
@@ -75,9 +87,10 @@ fn app() -> Html {
                             border-radius: 8px;
                         "
                     >
-                        { (*result).clone() }
+                        { (*result).clone() } // Display the current result message
                     </div>
 
+                    // Section for creating a new account
                     <div style="margin-bottom: 20px;">
                         <h2 style="color: #2196F3; margin-bottom: 10px;">{ "Create Account" }</h2>
                         <input 
@@ -122,15 +135,16 @@ fn app() -> Html {
                             onclick={
                                 let on_create_account = on_create_account.clone();
                                 Callback::from(move |_| {
-                                    let id = get_input_value("create-id");
-                                    let balance = get_input_value("create-balance").parse().unwrap_or(0);
-                                    on_create_account.emit((id, balance));
+                                    let id = get_input_value("create-id"); // Fetch input value for account ID
+                                    let balance = get_input_value("create-balance").parse().unwrap_or(0); // Parse input value for balance
+                                    on_create_account.emit((id, balance)); // Trigger the create account callback
                                 })
                             }>
                             { "Create" }
                         </button>
                     </div>
 
+                    // Section for transferring funds
                     <div style="margin-bottom: 20px;">
                         <h2 style="color: #FF5722; margin-bottom: 10px;">{ "Transfer Funds" }</h2>
                         <input 
@@ -191,13 +205,14 @@ fn app() -> Html {
                                     let from = get_input_value("from-id");
                                     let to = get_input_value("to-id");
                                     let amount = get_input_value("transfer-amount").parse().unwrap_or(0);
-                                    on_transfer.emit((from, to, amount));
+                                    on_transfer.emit((from, to, amount)); // Trigger the transfer callback
                                 })
                             }>
                             { "Transfer" }
                         </button>
                     </div>
 
+                    // Section for checking balance
                     <div style="margin-bottom: 20px;">
                         <h2 style="color: #673AB7; margin-bottom: 10px;">{ "Get Balance" }</h2>
                         <input 
@@ -209,7 +224,7 @@ fn app() -> Html {
                                 border: 1px solid rgba(255, 255, 255, 0.3); 
                                 border-radius: 8px; 
                                 background: rgba(0, 0, 0, 0.3); 
-                                color:rgb(255, 255, 255);
+                                color: #ffffff;
                             " 
                             placeholder="Account ID"
                         />
@@ -229,7 +244,7 @@ fn app() -> Html {
                                 let on_get_balance = on_get_balance.clone();
                                 Callback::from(move |_| {
                                     let id = get_input_value("balance-id");
-                                    on_get_balance.emit(id);
+                                    on_get_balance.emit(id); // Trigger the get balance callback
                                 })
                             }>
                             { "Check Balance" }
@@ -241,18 +256,20 @@ fn app() -> Html {
     }
 }
 
+/// Helper function to retrieve input value by element ID
 fn get_input_value(id: &str) -> String {
-    web_sys::window()
+    web_sys::window() // Get the browser's window object
         .unwrap()
-        .document()
+        .document() // Get the document object
         .unwrap()
-        .get_element_by_id(id)
+        .get_element_by_id(id) // Locate the element by ID
         .unwrap()
-        .dyn_into::<web_sys::HtmlInputElement>()
+        .dyn_into::<web_sys::HtmlInputElement>() // Cast to an HtmlInputElement
         .unwrap()
-        .value()
+        .value() // Retrieve the input's value
 }
 
+/// Entry point for the application
 fn main() {
-    yew::Renderer::<App>::new().render();
+    yew::Renderer::<App>::new().render(); // Render the App component
 }
